@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>pen fan kan mai i auan kate</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000000;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      cursor: grab;
+    }
+
+    canvas:active {
+      cursor: grabbing;
+    }
+
+    .text-container {
+      position: absolute;
+      bottom: 8%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      text-align: center;
+      pointer-events: none;
+      width: 90%;
+      max-width: 600px;
+    }
+
+    .heart-text {
+      font-size: clamp(0.75rem, 3.5vw, 1.1rem);
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.92);
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      text-indent: 0.35em;
+      line-height: 1.6;
+      white-space: nowrap;
+      text-shadow: 
+        0 0 12px rgba(255, 30, 70, 0.5),
+        0 0 30px rgba(255, 0, 50, 0.25);
+      animation: textGlowPulse 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes textGlowPulse {
+      0% {
+        opacity: 0.75;
+        text-shadow: 0 0 10px rgba(255, 30, 70, 0.4), 0 0 20px rgba(255, 0, 50, 0.2);
+      }
+      100% {
+        opacity: 1;
+        text-shadow: 0 0 16px rgba(255, 40, 80, 0.7), 0 0 35px rgba(255, 0, 60, 0.35);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="heartCanvas"></canvas>
+
+  <div class="text-container">
+    <div class="heart-text">pen fan kan mai i auan kate</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('heartCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', resize);
+    window.addEventListener('orientationchange', () => setTimeout(resize, 200));
+
+    const N = 2600; 
+    const points = [];
+    let theta = 0;
+    
+    // ความเร็วการหมุนและการเต้นที่คุณกำหนด
+    const ROTATION_SPEED = 0.0017; 
+    const PULSE_SPEED = 0.0020;    
+
+    let isDragging = false;
+    let previousMouseX = 0;
+    let previousMouseY = 0;
+    let rotationX = 0;
+    let rotationY = 0;
+
+    function heartFormula(u) {
+      const sinU = Math.sin(u);
+      const x = 1.6 * Math.pow(sinU, 3);
+      const y = 1.3 * Math.cos(u) - 0.5 * Math.cos(2 * u) - 0.2 * Math.cos(3 * u) - 0.1 * Math.cos(4 * u);
+      return { x, y };
+    }
+
+    for (let i = 0; i < N; i++) {
+      const u = Math.random() * 2 * Math.PI;
+      const h = heartFormula(u);
+      const rad = Math.sqrt(Math.random());
+      const hx = h.x * rad;
+      const hy = h.y * rad;
+      const z = 1.1 * (1 - rad) * (Math.random() * 2 - 1);
+
+      points.push({ x: hx, y: hy, z: z });
+    }
+
+    function getColor(depth) {
+      const f = Math.max(0, Math.min(1, depth));
+      const r = Math.round(160 + f * 95); 
+      const g = Math.round(f * 25);    
+      const b = Math.round(15 + f * 55);   
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    window.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      previousMouseX = e.clientX;
+      previousMouseY = e.clientY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - previousMouseX;
+      const deltaY = e.clientY - previousMouseY;
+      rotationY += deltaX * 0.004;
+      rotationX += deltaY * 0.004;
+      previousMouseX = e.clientX;
+      previousMouseY = e.clientY;
+    });
+
+    window.addEventListener('mouseup', () => isDragging = false);
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        previousMouseX = e.touches[0].clientX;
+        previousMouseY = e.touches[0].clientY;
+      }
+    });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      const deltaX = e.touches[0].clientX - previousMouseX;
+      const deltaY = e.touches[0].clientY - previousMouseY;
+      rotationY += deltaX * 0.004;
+      rotationX += deltaY * 0.004;
+      previousMouseX = e.touches[0].clientX;
+      previousMouseY = e.touches[0].clientY;
+    });
+
+    window.addEventListener('touchend', () => isDragging = false);
+
+    function render() {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, width, height);
+
+      theta += ROTATION_SPEED;
+      const time = Date.now() * PULSE_SPEED;
+      const pulse = 1 + Math.sin(time) * 0.05; 
+
+      const currentScale = Math.min(width, height) * 0.17 * pulse;
+
+      const totalAngleY = theta + rotationY;
+      const totalAngleX = rotationX;
+
+      const ctY = Math.cos(totalAngleY);
+      const stY = Math.sin(totalAngleY);
+      const ctX = Math.cos(totalAngleX);
+      const stX = Math.sin(totalAngleX);
+
+      const projected = [];
+
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+
+        let x1 = p.x * ctY + p.z * stY;
+        let y1 = p.y;
+        let z1 = -p.x * stY + p.z * ctY;
+
+        let x2 = x1;
+        let y2 = y1 * ctX - z1 * stX;
+        let z2 = y1 * stX + z1 * ctX;
+
+        projected.push({
+          x: x2 * currentScale + width / 2,
+          y: -y2 * currentScale + height / 2 - 35,
+          z: z2,
+          depth: (z2 + 1.1) / 2.2
+        });
+      }
+
+      projected.sort((a, b) => a.z - b.z);
+
+      for (let i = 0; i < projected.length; i++) {
+        const p = projected[i];
+        const color = getColor(p.depth);
+        const size = 1.1 + p.depth * 2.3;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        
+        if (p.depth > 0.65) {
+          ctx.shadowBlur = 8 * p.depth;
+          ctx.shadowColor = '#ff1a4d';
+        } else {
+          ctx.shadowBlur = 0;
+        }
+
+        ctx.fill();
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    render();
+  </script>
+</body>
+</html>
